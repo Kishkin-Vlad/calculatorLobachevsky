@@ -3,6 +3,7 @@
 logger.log
 debug.log
 need.py
+main.py
 
 # Byte-compiled  optimized  DLL files
 __pycache__
