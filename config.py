@@ -1,6 +1,6 @@
-# Third party libraries
+# Сторонние библиотеки
 import os
 
 
-# Path to our directory
+# Путь к директории, где находится файл
 path_to_dir = os.path.dirname(os.path.abspath(__file__))

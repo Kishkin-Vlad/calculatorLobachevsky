@@ -1,11 +1,11 @@
-# Third party libraries
+# СТоронние бибилиотеки
 import logging
 import traceback
 
 
 class Logger(object):
     """
-    Writing errors that occur to the logger.log file
+    Запись ошибок в файл logger.log
     """
     def __init__(self):
         self.logger = logging.getLogger('logger')
@@ -26,10 +26,10 @@ class Logger(object):
         self.logger.addHandler(file_handler_log)
 
     def error(self):
-        self.logger.error('Error:\n{}'.format(traceback.format_exc()))
+        self.logger.error('Ошибка:\n{}'.format(traceback.format_exc()))
 
     def warning(self):
-        self.logger.warning('The error is recorded in logger.log')
+        self.logger.warning('Ошибка записана в файл logger.log')
 
 
 
