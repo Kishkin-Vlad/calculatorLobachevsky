@@ -1,6 +1,351 @@
+# Сторонние библиотеки
+from copy import deepcopy
+
 # Наши модули
 from Error import *
 
+
+def _factor(number: int):
+    """
+    Получить из числа его простые множители
+    :param number: целочисленное число
+    :return: список множителей
+    """
+    """
+    Проверяем делимость number на натуральные числа подряд, начиная с 2
+    Если prime_number делитель number, то делим number на prime_number
+    Продолжаем перебор до sqrt(number)
+    Если в конце number != 1 => number так же является простым делителем
+    """
+
+    if not isinstance(number, int):
+        raise FractionError('not integer number', {'def': 'factor (prime factorization)', 'type': type(number)})
+
+    number = abs(number)
+    numbers = []
+    prime_number = 2
+    while prime_number ** 2 <= number:
+        if number % prime_number == 0:
+            numbers.append(prime_number)
+            number //= prime_number
+        else:
+            prime_number += 1
+    if number > 1:
+        numbers.append(number)
+
+    return numbers
+
+class _Fraction(object):
+    """
+    Объект дробь, нужен для приведения матрицы к треугольному виду
+    """
+
+    def __init__(self, numerator, denominator):
+        """
+        Инициализация
+        :param numerator: числитель (int, float или Fraction)
+        :param denominator: знаменатель (int, float или Fraction)
+        """
+        if denominator == 0:
+            raise FractionError('denominator = 0', {'def': '__init__', 'denominator': denominator})
+
+        numerator_is_number = isinstance(numerator, int) or isinstance(numerator, float)
+        denominator_is_number = isinstance(denominator, int) or isinstance(denominator, float)
+        numerator_is_fraction = isinstance(numerator, _Fraction)
+        denominator_is_fraction = isinstance(denominator, _Fraction)
+
+        # Если числитель и знаменатель число
+        if numerator_is_number and denominator_is_number:
+
+            self.numerator = numerator
+            self.denominator = denominator
+
+        # Если числитель число, а знаменатель - дробь
+        elif numerator_is_number and denominator_is_fraction:
+
+            self.numerator = numerator * denominator.denominator
+            self.denominator = denominator.numerator
+
+        # Если числитель дробь, а знаменатель - число
+        elif numerator_is_fraction and denominator_is_number:
+
+            self.numerator = numerator.numerator
+            self.denominator = numerator.denominator * denominator
+
+        # Если числитель и знаменатель дробь
+        elif numerator_is_fraction and denominator_is_fraction:
+
+            self.numerator = numerator.numerator * denominator.denominator
+            self.denominator = numerator.denominator * denominator.numerator
+
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type_numenator': type(numerator),
+                                                 'type_denominaor': type(denominator)})
+
+    def reduction(self):
+        """
+        Раскладываем на простые множители и сокращаем
+        :return: сокращенная дробь
+        """
+        numerator_positive = True
+        if self.numerator < 0:
+            numerator_positive = False
+
+        prime_numbers_numerator = _factor(self.numerator)
+        prime_numbers_denominator = _factor(self.denominator)
+
+        # Схема для динамических списков (из которых
+        # удаляются элементы => меняется длина списка)
+        i = 0
+        j = 0
+        next_b = True
+        while i < len(prime_numbers_numerator):
+            j = 0
+            while j < len(prime_numbers_denominator):
+                from_numerator = prime_numbers_numerator[i]
+                from_denominator = prime_numbers_denominator[j]
+                if from_numerator == from_denominator:
+                    prime_numbers_numerator.pop(i)
+                    prime_numbers_denominator.pop(j)
+                    next_b = False
+                    break
+                else:
+                    j += 1
+            if next_b:
+                i += 1
+            next_b = True
+
+        del i, j, next_b
+
+        new_numerator = 1
+        for elem in prime_numbers_numerator:
+            new_numerator *= elem
+
+        new_denominator = 1
+        for elem in prime_numbers_denominator:
+            new_denominator *= elem
+
+        if not numerator_positive:
+            new_numerator = -new_numerator
+
+        if new_numerator / new_denominator == new_numerator // new_denominator:
+            return new_numerator // new_denominator
+
+        return _Fraction(new_numerator, new_denominator)
+
+    def __add__(self, other):
+        """
+        Сложение
+        :param other: то, с чем складываем (int, float или fraction)
+        :return: результат сложения
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator + other * self.denominator
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator + other.numerator * self.denominator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __radd__(self, other):
+        """
+        Сложение
+        :param other: то, с чем складываем (int, float или fraction)
+        :return: результат сложения
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator + other * self.denominator
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator + other.numerator * self.denominator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __sub__(self, other):
+        """
+        Вычитание
+        :param other: то, из чего вычитаем (int, float или fraction)
+        :return: результат вычитания
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator - other * self.denominator
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator - other.numerator * self.denominator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __rsub__(self, other):
+        """
+        Вычитание
+        :param other: то, что вычитаем (int, float или fraction)
+        :return: результат вычитания
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = other * self.denominator - self.numerator
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = other.numerator * self.denominator - self.numerator * other.denominator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __mul__(self, other):
+        """
+        Умножение
+        :param other: то, с чем умножаем (int, float или fraction)
+        :return: результат умножения
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator * other
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.numerator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __rmul__(self, other):
+        """
+        Умножение
+        :param other: то, с чем умножаем (int, float или fraction)
+        :return: результат умножения
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator * other
+            result.denominator = self.denominator
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.numerator
+            result.denominator = self.denominator * other.denominator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __truediv__(self, other):
+        """
+        Деление
+        :param other: то, на что делим (int, float или fraction)
+        :return: результат деления
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator
+            result.denominator = self.denominator * other
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator
+            result.denominator = self.denominator * other.numerator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __rtruediv__(self, other):
+        """
+        Деление
+        :param other: то, что делим (int, float или fraction)
+        :return: результат деления
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator
+            result.denominator = self.denominator * other
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator
+            result.denominator = self.denominator * other.numerator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __floordiv__(self, other):
+        """
+        Целочисленное деление (в случае с дробью то же самое, что и обычное деление)
+        :param other: то, на что делим (int, float или fraction)
+        :return: результат деления
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator
+            result.denominator = self.denominator * other
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator
+            result.denominator = self.denominator * other.numerator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __rfloordiv__(self, other):
+        """
+        Целочисленное деление (в случае с дробью то же самое, что и обычное деление)
+        :param other: то, что делим (int, float или fraction)
+        :return: результат деления
+        """
+
+        result = _Fraction(0, 1)
+        if isinstance(other, int) or isinstance(other, float):
+            result.numerator = self.numerator
+            result.denominator = self.denominator * other
+        elif isinstance(other, _Fraction):
+            result.numerator = self.numerator * other.denominator
+            result.denominator = self.denominator * other.numerator
+        else:
+            raise FractionError('unknown type', {'def': '*', 'type': type(other)})
+
+        return result.reduction()
+
+    def __neg__(self):
+        """
+        Унарный минус
+        :return: результат - объект _Franction
+        """
+
+        self.numerator = -self.numerator
+
+        return self
+
+    def __str__(self):
+        """
+        :return: Вывод дроби в виде 1/2
+        """
+
+        return '{}/{}'.format(self.numerator, self.denominator)
+
+    def __repr__(self):
+        """
+        :return: Вывод дроби в виде 1/2
+        """
+
+        return '{}/{}'.format(self.numerator, self.denominator)
 
 def _count_datermint(matrix: list):
     """
@@ -65,11 +410,12 @@ class Matrix(object):
 
         # Проверка на передаваемые типы параметров
         if not (isinstance(matrix, list) or matrix is None):
-            raise MatrixError('matrix is not a two-dimensional array', {'matrix': matrix, 'type': type(matrix)})
+            raise MatrixError('matrix is not a two-dimensional array', {'def': '__init__',
+                                                                        'matrix': matrix, 'type': type(matrix)})
         if not (isinstance(row, int) or row is None):
-            raise MatrixError('row is not a int', {'row': row, 'type': type(row)})
+            raise MatrixError('row is not a int', {'def': '__init__', 'row': row, 'type': type(row)})
         if not (isinstance(col, int) or col is None):
-            raise MatrixError('col is not a int', {'col': col, 'type': type(col)})
+            raise MatrixError('col is not a int', {'def': '__init__', 'col': col, 'type': type(col)})
 
         if matrix is not None:
             """
@@ -94,7 +440,7 @@ class Matrix(object):
             del arr_len
 
             if cols == 0:
-                raise MatrixError('a matrix of the form {}x0'.format(rows), {'matrix': matrix})
+                raise MatrixError('a matrix of the form {}x0'.format(rows), {'def': '__init__', 'matrix': matrix})
 
             self.matrix = []
             for i_row, row in enumerate(matrix):
@@ -103,7 +449,8 @@ class Matrix(object):
                     try:
                         number = matrix[i_row][col]
                         if not (isinstance(number, int) or isinstance(number, float)):
-                            raise MatrixError('an element in a matrix is not a number', {'matrix': matrix})
+                            raise MatrixError('an element in a matrix is not a number', {'def': '__init__',
+                                                                                         'matrix': matrix})
                         self.matrix[i_row].append(number)
                     except IndexError:
                         self.matrix[i_row].append(0)
@@ -114,7 +461,7 @@ class Matrix(object):
             # Создаем нулевую матрицу
             if row <= 0 or col <= 0:
                 raise MatrixError('the parameters of row or col are less than or equal to zero',
-                                  {'row': row, 'col': col})
+                                  {'def': '__init__', 'row': row, 'col': col})
 
             self.matrix = []
             for i in range(row):
@@ -137,11 +484,12 @@ class Matrix(object):
 
         # Проверка на передаваемые типы параметров
         if not (isinstance(matrix, list) or matrix is None):
-            raise MatrixError('matrix is not a two-dimensional array', {'matrix': matrix, 'type': type(matrix)})
+            raise MatrixError('matrix is not a two-dimensional array', {'def': '__call__',
+                                                                        'matrix': matrix, 'type': type(matrix)})
         if not (isinstance(row, int) or row is None):
-            raise MatrixError('row is not a int', {'row': row, 'type': type(row)})
+            raise MatrixError('row is not a int', {'def': '__call__', 'row': row, 'type': type(row)})
         if not (isinstance(col, int) or col is None):
-            raise MatrixError('col is not a int', {'col': col, 'type': type(col)})
+            raise MatrixError('col is not a int', {'def': '__call__', 'col': col, 'type': type(col)})
 
         if matrix is not None:
             """
@@ -166,7 +514,7 @@ class Matrix(object):
             del arr_len
 
             if cols == 0:
-                raise MatrixError('a matrix of the form {}x0'.format(rows), {'matrix': matrix})
+                raise MatrixError('a matrix of the form {}x0'.format(rows), {'def': '__call__', 'matrix': matrix})
 
             self.matrix = []
             for i_row, row in enumerate(matrix):
@@ -175,7 +523,8 @@ class Matrix(object):
                     try:
                         number = matrix[i_row][col]
                         if not (isinstance(number, int) or isinstance(number, float)):
-                            raise MatrixError('an element in a matrix is not a number', {'matrix': matrix})
+                            raise MatrixError('an element in a matrix is not a number', {'def': '__call__',
+                                                                                         'matrix': matrix})
                         self.matrix[i_row].append(number)
                     except IndexError:
                         self.matrix[i_row].append(0)
@@ -186,7 +535,7 @@ class Matrix(object):
             # Создаем нулевую матрицу
             if row <= 0 or col <= 0:
                 raise MatrixError('the parameters of row or col are less than or equal to zero',
-                                  {'row': row, 'col': col})
+                                  {'def': '__call__', 'row': row, 'col': col})
 
             self.matrix = []
             for i in range(row):
@@ -202,6 +551,7 @@ class Matrix(object):
         Нахождение определителя квадратной матрицы
         :return: число (определитель)
         """
+
         if self.row != self.col:
             raise MatrixError('matrix is not square',
                               {'def': 'determinant', 'row': self.row, 'col': self.col})
@@ -221,13 +571,56 @@ class Matrix(object):
 
         return matrix
 
-    # x < y
-    def __lt__(self, other):
-        pass
+    def triangular_view(self):
+        """
+        Приводим матрицу к треугольному виду
+        :return: результат - объект Matrix треугольного вида
+        """
+        """
+        Проходимся по матрице ровно столько, сколько строк
+        каждый раз првоодя строчку, с которой работаем, в вид [..., 1, ...]
+        а все строчки ниже в вид [..., 0, ...]
+        """
+        if self.row != self.col:
+            raise MatrixError('matrix is not square',
+                              {'def': 'triangular_view', 'row': self.row, 'col': self.col})
 
-    # x <= y
-    def __le__(self, other):
-        pass
+        for i in range(self.row - 1):
+            for count_row in range(i, self.row):
+                """
+                Преобразуем матрицу так, чтобы столбец,
+                с которым работаем состоял из единиц, 
+                начиная со строки i
+                """
+
+                number = self.matrix[count_row][i]
+                if number == 1 or number == 0:
+                    continue
+                for j in range(i, self.col):
+                    """
+                    Чтобы получить единицы в нашем столбце, нужно
+                    поделить все значения в столбце на значение, которое
+                    сейчас в этом столбце
+                    """
+
+                    temp_num = _Fraction(self.matrix[count_row][j], number)
+                    self.matrix[count_row][j] = temp_num.reduction()
+            print('Какая матрица на данном этапе:', self, sep='\n')
+
+            for row_other in range(i + 1, self.row):
+                """
+                Вычитаем строку i из всех строк, ниже i
+                (так у нас во всем столбце 1, то ни
+                на что умножать строку i не нужно)                                
+                """
+
+                for col_other in range(i, self.col):
+                    print('Данные для вычитания:', self.matrix[row_other][col_other], self.matrix[i][col_other],
+                          sep='\n')
+                    self.matrix[row_other][col_other] = self.matrix[row_other][col_other] - self.matrix[i][col_other]
+                    print('Что вышло после разности:', self.matrix[row_other][col_other], sep='\n')
+
+        return self
 
     def __eq__(self, other):
         """
@@ -237,7 +630,7 @@ class Matrix(object):
         """
 
         if type(self) != type(other):
-            raise MatrixError('type mismatch', {'type1': type(self), 'type2':  type(other)})
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
 
         if len(self.matrix) != len(other.matrix):
             return False
@@ -255,7 +648,7 @@ class Matrix(object):
         """
 
         if type(self) != type(other):
-            raise MatrixError('type mismatch', {'type1': type(self), 'type2':  type(other)})
+            raise MatrixError('type mismatch', {'def': '!=', 'type1': type(self), 'type2':  type(other)})
 
         if len(self.matrix) != len(other.matrix):
             return True
@@ -265,24 +658,17 @@ class Matrix(object):
 
         return False
 
-    # x > y
-    def __gt__(self, other):
-        pass
-
-    # x >= y
-    def __ge__(self, other):
-        pass
-
     def __add__(self, other):
         """
         Сумма двух объектов Matrix
         :param other: матрица, с которой суммируем
         :return: результат - объект Matrix
         """
+
         if self.row != other.row:
-            raise MatrixError('rows are not equal', {'row1': self.row, 'row2': other.row})
+            raise MatrixError('rows are not equal', {'def': '+', 'row1': self.row, 'row2': other.row})
         if self.col != other.col:
-            raise MatrixError('rows are not equal', {'col1': self.col, 'col2': other.col})
+            raise MatrixError('rows are not equal', {'def': '+', 'col1': self.col, 'col2': other.col})
 
         matrix = Matrix(row=self.row, col=self.col)
         for i, (row1, row2) in enumerate(zip(self.matrix, other.matrix)):
@@ -291,16 +677,35 @@ class Matrix(object):
 
         return matrix
 
+    def __iadd__(self, other):
+        """
+        Сумма двух объектов Matrix
+        :param other: матрица, с которой суммируем
+        :return: результат - объект Matrix
+        """
+
+        if self.row != other.row:
+            raise MatrixError('rows are not equal', {'def': '+', 'row1': self.row, 'row2': other.row})
+        if self.col != other.col:
+            raise MatrixError('rows are not equal', {'def': '+', 'col1': self.col, 'col2': other.col})
+
+        for i, (row1, row2) in enumerate(zip(self.matrix, other.matrix)):
+            for j, (col1, col2) in enumerate(zip(row1, row2)):
+                self.matrix[i][j] = col1 + col2
+
+        return self
+
     def __sub__(self, other):
         """
         Разность двух объектов Matrix
         :param other: матрица, к которой производим разность
         :return: результат - объект Matrix
         """
+
         if self.row != other.row:
-            raise MatrixError('rows are not equal', {'row1': self.row, 'row2': other.row})
+            raise MatrixError('rows are not equal', {'def': '-', 'row1': self.row, 'row2': other.row})
         if self.col != other.col:
-            raise MatrixError('rows are not equal', {'col1': self.col, 'col2': other.col})
+            raise MatrixError('rows are not equal', {'def': '-', 'col1': self.col, 'col2': other.col})
 
         matrix = Matrix(row=self.row, col=self.col)
         for i, (row1, row2) in enumerate(zip(self.matrix, other.matrix)):
@@ -309,12 +714,110 @@ class Matrix(object):
 
         return matrix
 
+    def __isub__(self, other):
+        """
+        Разность двух объектов Matrix
+        :param other: матрица, к которой производим разность
+        :return: результат - объект Matrix
+        """
+
+        if self.row != other.row:
+            raise MatrixError('rows are not equal', {'def': '-', 'row1': self.row, 'row2': other.row})
+        if self.col != other.col:
+            raise MatrixError('rows are not equal', {'def': '-', 'col1': self.col, 'col2': other.col})
+
+        for i, (row1, row2) in enumerate(zip(self.matrix, other.matrix)):
+            for j, (col1, col2) in enumerate(zip(row1, row2)):
+                self.matrix[i][j] = col1 - col2
+
+        return self
+
+    def __neg__(self):
+        """
+        Унарный минус (ко всем числам в матрице применяется *(-1))
+        :return: результат - объект Matrix
+        """
+        
+        for i, row in enumerate(self.matrix):
+            for j, col in enumerate(row):
+                self.matrix[i][j] = -1 * col
+            
+        return self
+
     def __mul__(self, other):
+        """
+        Произведение двух объектов Matrix
+        :param other: матрица, к которой производим умножение или число
+        :return: результат - объект Matrix
+        """
+
         if isinstance(other, Matrix):
             if self.col != other.row:
                 raise MatrixError('the number of columns in the first matrix is not equal'
                                   ' to the number of rows in the second matrix',
-                                  {'col_matrix1': self.col, 'row_matrix2': other.row})
+                                  {'def': '*', 'col_matrix1': self.col, 'row_matrix2': other.row})
+
+            matrix = Matrix(row=self.row, col=other.col)
+            for row in range(self.row):
+                for col in range(other.col):
+                    for row_col in range(self.col):
+                        matrix.matrix[row][col] += self.matrix[row][row_col] * other.matrix[row_col][col]
+
+            return matrix
+
+        elif isinstance(other, int) or isinstance(other, float):
+            matrix = Matrix(row=self.row, col=self.col)
+            for i in range(self.row):
+                for j in range(self.col):
+                    matrix.matrix[i][j] *= other
+
+            return matrix
+        else:
+            raise MatrixError('raw types for multiplication', {'def': '*', 'type1': type(self), 'type': type(other)})
+
+    def __rmul__(self, other):
+        """
+        Произведение двух объектов Matrix
+        :param other: матрица, к которой производим умножение или число
+        :return: результат - объект Matrix
+        """
+
+        if isinstance(other, Matrix):
+            if self.col != other.row:
+                raise MatrixError('the number of columns in the first matrix is not equal'
+                                  ' to the number of rows in the second matrix',
+                                  {'def': '*', 'col_matrix1': self.col, 'row_matrix2': other.row})
+
+            matrix = Matrix(row=self.row, col=other.col)
+            for row in range(self.row):
+                for col in range(other.col):
+                    for row_col in range(self.col):
+                        matrix.matrix[row][col] += self.matrix[row][row_col] * other.matrix[row_col][col]
+
+            return matrix
+
+        elif isinstance(other, int) or isinstance(other, float):
+            matrix = Matrix(row=self.row, col=self.col)
+            for i in range(self.row):
+                for j in range(self.col):
+                    matrix.matrix[i][j] *= other
+
+            return matrix
+        else:
+            raise MatrixError('raw types for multiplication', {'def': '*', 'type1': type(self), 'type': type(other)})
+
+    def __imul__(self, other):
+        """
+        Произведение двух объектов Matrix
+        :param other: матрица, к которой производим умножение или число
+        :return: результат - объект Matrix
+        """
+
+        if isinstance(other, Matrix):
+            if self.col != other.row:
+                raise MatrixError('the number of columns in the first matrix is not equal'
+                                  ' to the number of rows in the second matrix',
+                                  {'def': '*', 'col_matrix1': self.col, 'row_matrix2': other.row})
 
             matrix = Matrix(row=self.row, col=other.col)
             for row in range(self.row):
@@ -331,7 +834,7 @@ class Matrix(object):
 
             return self
         else:
-            raise MatrixError('raw types for multiplication', {'type1': type(self), 'type': type(other)})
+            raise MatrixError('raw types for multiplication', {'def': '*', 'type1': type(self), 'type': type(other)})
 
     def __bool__(self):
         """
@@ -348,6 +851,26 @@ class Matrix(object):
            [0, 0],
            [0, 0] ]
         """
+
+        result = '['
+        for i in range(self.row):
+            if i == 0:
+                result = '{} {},'.format(result, str(self.matrix[i]))
+            else:
+                result = '{}  {},'.format(result, str(self.matrix[i]))
+            result = '{}\n'.format(result)
+        result = '{} ]'.format(result[:-2])
+
+        return result
+
+    def __repr__(self):
+        """
+                :return: Вывод матрицы в виде (пример матрица 3x2):
+                 [ [0, 0],
+                   [0, 0],
+                   [0, 0] ]
+                """
+
         result = '['
         for i in range(self.row):
             if i == 0:
