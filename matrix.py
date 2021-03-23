@@ -35,6 +35,42 @@ def _factor(number: int):
 
     return numbers
 
+
+def _removing_identical_elements(list1: list, list2: list):
+    """
+    Удаляет одинаковые элементы из двух массивов
+    Пример: [2, 2, 3] и [2, 2, 2, 5] => [3] и [2, 5]
+    :param list1: Первый массив
+    :param list2: Второй массив
+    :return: Очищенные массивы
+    """
+
+    new_list1 = deepcopy(list1)
+    new_list2 = deepcopy(list2)
+    # Схема для динамических списков (из которых
+    # удаляются элементы => меняется длина списка)
+    i = 0
+    j = 0
+    next_b = True
+    while i < len(new_list1):
+        j = 0
+        while j < len(new_list2):
+            from_numerator = new_list1[i]
+            from_denominator = new_list2[j]
+            if from_numerator == from_denominator:
+                new_list1.pop(i)
+                new_list2.pop(j)
+                next_b = False
+                break
+            else:
+                j += 1
+        if next_b:
+            i += 1
+        next_b = True
+
+    return new_list1, new_list2
+
+
 class _Fraction(object):
     """
     Объект дробь, нужен для приведения матрицы к треугольному виду
@@ -93,29 +129,8 @@ class _Fraction(object):
 
         prime_numbers_numerator = _factor(self.numerator)
         prime_numbers_denominator = _factor(self.denominator)
-
-        # Схема для динамических списков (из которых
-        # удаляются элементы => меняется длина списка)
-        i = 0
-        j = 0
-        next_b = True
-        while i < len(prime_numbers_numerator):
-            j = 0
-            while j < len(prime_numbers_denominator):
-                from_numerator = prime_numbers_numerator[i]
-                from_denominator = prime_numbers_denominator[j]
-                if from_numerator == from_denominator:
-                    prime_numbers_numerator.pop(i)
-                    prime_numbers_denominator.pop(j)
-                    next_b = False
-                    break
-                else:
-                    j += 1
-            if next_b:
-                i += 1
-            next_b = True
-
-        del i, j, next_b
+        prime_numbers_numerator, prime_numbers_denominator = _removing_identical_elements(prime_numbers_numerator,
+                                                                                          prime_numbers_denominator)
 
         new_numerator = 1
         for elem in prime_numbers_numerator:
@@ -132,6 +147,37 @@ class _Fraction(object):
             return new_numerator // new_denominator
 
         return _Fraction(new_numerator, new_denominator)
+
+    def __lt__(self, other):
+        """
+        Сравнение
+        :param other: число или дробь
+        :return: True - меньше, False - больше
+        """
+        if isinstance(other, int) and isinstance(other, float):
+            return (self.numerator / self.denominator) < other
+        elif isinstance(other, _Fraction):
+            # Одинаковые числители
+            if self.numerator == other.numerator:
+                return self.denominator > other.denominator
+            # Одинаковые знаменатели
+            elif self.denominator == other.denominator:
+                return self.numerator < other.numerator
+            # Разные числители и знаменатели
+            else:
+                prime_numbers1 = _factor(self.denominator)
+                prime_numbers2 = _factor(other.denominator)
+                prime_numbers1, prime_numbers2 = _removing_identical_elements(prime_numbers1, prime_numbers2)
+
+                new_numerator1 = 1
+                for elem in prime_numbers1:
+                    new_numerator1 *= elem
+
+                new_numerator2 = 1
+                for elem in prime_numbers2:
+                    new_numerator2 *= elem
+
+                return prime_numbers1 < prime_numbers2
 
     def __add__(self, other):
         """
@@ -347,21 +393,22 @@ class _Fraction(object):
 
         return '{}/{}'.format(self.numerator, self.denominator)
 
-def _count_datermint(matrix: list):
+
+def _count_determinant(matrix: list):
     """
     Сам процесс получения определителя
     :param matrix: квадратная матрица
     :return: число (определитель)
     """
 
-    datermint = 0
+    determinant = 0
     len_matrix = len(matrix)
     # Для матрицы первого порядка
     if len_matrix == 1:
         return matrix[0][0]
     # Для матрицы второго порядка
     elif len_matrix == 2:
-        datermint = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+        determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
     # Для матриц высшего порядка
     else:
         """
@@ -384,16 +431,18 @@ def _count_datermint(matrix: list):
                         continue
                     mat[i - 1].append(col_number)
 
-            # формула нахождения определителя в нашем случае:
-            # sum(a_(1)(col_count) * (-1)^(1 + col_count) * M), где
-            # sum - как математический знак E от 1 до количества столбцов в матрице
-            # a_(1)(col_count) - число из первой строки и столбца col_count
-            # 1 - номер строки (у нас всегда первая строка)
-            # col_count - столбец, с которым работаем
-            # M - дополнительный минор для первой строки и столбца col_count
-            datermint += number * (-1) ** (2 + col_count) * _count_datermint(mat)
+            """
+            формула нахождения определителя в нашем случае:
+            sum(a_(1)(col_count) * (-1)^(1 + col_count) * M), где
+            sum - как математический знак E от 1 до количества столбцов в матрице
+            a_(1)(col_count) - число из первой строки и столбца col_count
+            1 - номер строки (у нас всегда первая строка)
+            col_count - столбец, с которым работаем
+            M - дополнительный минор для первой строки и столбца col_count
+            """
+            determinant += number * (-1) ** (2 + col_count) * _count_determinant(mat)
 
-    return datermint
+    return determinant
 
 
 class Matrix(object):
@@ -556,7 +605,7 @@ class Matrix(object):
             raise MatrixError('matrix is not square',
                               {'def': 'determinant', 'row': self.row, 'col': self.col})
 
-        return _count_datermint(self.matrix)
+        return _count_determinant(self.matrix)
 
     def transposition(self):
         """
@@ -571,21 +620,22 @@ class Matrix(object):
 
         return matrix
 
-    def triangular_view(self):
+    def stepped_view(self):
         """
-        Приводим матрицу к треугольному виду
-        :return: результат - объект Matrix треугольного вида
+        Приводим матрицу к ступенчатому виду
+        :return: результат - объект Matrix ступенчатого вида
         """
         """
         Проходимся по матрице ровно столько, сколько строк
-        каждый раз првоодя строчку, с которой работаем, в вид [..., 1, ...]
+        каждый раз приводя строчку, с которой работаем, в вид [..., 1, ...]
         а все строчки ниже в вид [..., 0, ...]
         """
-        if self.row != self.col:
-            raise MatrixError('matrix is not square',
-                              {'def': 'triangular_view', 'row': self.row, 'col': self.col})
 
-        for i in range(self.row - 1):
+        # Сортируем матрицу для удобства и наглядности
+        self.matrix.sort(reverse=True)
+
+        i = 0
+        while i < self.row:
             for count_row in range(i, self.row):
                 """
                 Преобразуем матрицу так, чтобы столбец,
@@ -593,34 +643,104 @@ class Matrix(object):
                 начиная со строки i
                 """
 
-                number = self.matrix[count_row][i]
+                """
+                Если количество строк больше количества столбцов,
+                и получилась матрица, например
+                [ [1, 2],
+                  [0, 1],
+                  [0, 6],
+                  [0, 7] ]
+                и мы пытаясь взять элемент лежащий в 3 строке и
+                в 3 столбце, получаем ошибку, то выходим из цикла
+                """
+                try:
+                    number = self.matrix[count_row][i]
+                except IndexError:
+                    break
+
                 if number == 1 or number == 0:
                     continue
                 for j in range(i, self.col):
                     """
                     Чтобы получить единицы в нашем столбце, нужно
                     поделить все значения в столбце на значение, которое
-                    сейчас в этом столбце
+                    сейчас в этих строчке и столбце
                     """
 
                     temp_num = _Fraction(self.matrix[count_row][j], number)
                     self.matrix[count_row][j] = temp_num.reduction()
-            print('Какая матрица на данном этапе:', self, sep='\n')
 
-            for row_other in range(i + 1, self.row):
+            """
+            Сделаем матрицу более красивую
+            если первый элемент в строке стоит с минусом,
+            то умножим всю строку на -1
+            """
+            for row in range(i, self.row):
                 """
-                Вычитаем строку i из всех строк, ниже i
-                (так у нас во всем столбце 1, то ни
-                на что умножать строку i не нужно)                                
+                Если количество строк больше количества столбцов,
+                и получилась матрица, например
+                [ [1, 2],
+                  [0, 1],
+                  [0, 6],
+                  [0, 7] ]
+                и мы пытаясь взять элемент лежащий в 3 строке и
+                в 3 столбце, получаем ошибку, то выходим из цикла
                 """
+                try:
+                    if self.matrix[row][i] < 0:
+                        for j in range(i, self.col):
+                            self.matrix[row][j] = self.matrix[row][j] * (-1)
+                except IndexError:
+                    break
 
-                for col_other in range(i, self.col):
-                    print('Данные для вычитания:', self.matrix[row_other][col_other], self.matrix[i][col_other],
-                          sep='\n')
-                    self.matrix[row_other][col_other] = self.matrix[row_other][col_other] - self.matrix[i][col_other]
-                    print('Что вышло после разности:', self.matrix[row_other][col_other], sep='\n')
+            if i != self.row - 1:
+                for row_other in range(i + 1, self.row):
+                    """
+                    Вычитаем строку i из всех строк, ниже i
+                    (так у нас во всем столбце 1, то ни
+                    на что умножать строку i не нужно)                                
+                    """
+
+                    for col_other in range(i, self.col):
+                        if self.matrix[row_other][col_other] != 0:
+                            self.matrix[row_other][col_other] -= self.matrix[i][col_other]
+
+            # Если текущая строка состоит только из 0,
+            # то удаляем ее
+            delete_row = True
+            for temp_col in range(self.col):
+                if self.matrix[i][temp_col] != 0:
+                    delete_row = False
+            if delete_row:
+                self.matrix.pop(i)
+                self.row -= 1
+
+            i += 1
+
+        """
+        Если строк больше столбцов, то занулим все строки, что ниже
+        последней обработанной нами строкой (а раз они зануляются в
+        любом случае, то их нужно удалить)
+        """
+        if self.row > self.col:
+            for count in range(self.row - self.col):
+                self.matrix.pop(self.col)
+                self.row -= 1
 
         return self
+
+    def gauss(self):
+        """
+        Найти решение методом Гаусса
+        :return: массив решений, т. е. [x1, x2, ..., xn]
+        """
+        """
+        Приводим матрицу к треульному виду и решаем систему уравнений
+        """
+
+
+
+
 
     def __eq__(self, other):
         """
@@ -629,7 +749,7 @@ class Matrix(object):
         :return: True - идентичны, False - не иденичны
         """
 
-        if type(self) != type(other):
+        if not isinstance(other, Matrix):
             raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
 
         if len(self.matrix) != len(other.matrix):
@@ -647,8 +767,8 @@ class Matrix(object):
         :return: True - не идентичны, False - иденичны
         """
 
-        if type(self) != type(other):
-            raise MatrixError('type mismatch', {'def': '!=', 'type1': type(self), 'type2':  type(other)})
+        if not isinstance(other, Matrix):
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2': type(other)})
 
         if len(self.matrix) != len(other.matrix):
             return True
@@ -664,6 +784,9 @@ class Matrix(object):
         :param other: матрица, с которой суммируем
         :return: результат - объект Matrix
         """
+
+        if not isinstance(other, Matrix):
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
 
         if self.row != other.row:
             raise MatrixError('rows are not equal', {'def': '+', 'row1': self.row, 'row2': other.row})
@@ -684,6 +807,9 @@ class Matrix(object):
         :return: результат - объект Matrix
         """
 
+        if not isinstance(other, Matrix):
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
+
         if self.row != other.row:
             raise MatrixError('rows are not equal', {'def': '+', 'row1': self.row, 'row2': other.row})
         if self.col != other.col:
@@ -701,6 +827,9 @@ class Matrix(object):
         :param other: матрица, к которой производим разность
         :return: результат - объект Matrix
         """
+
+        if not isinstance(other, Matrix):
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
 
         if self.row != other.row:
             raise MatrixError('rows are not equal', {'def': '-', 'row1': self.row, 'row2': other.row})
@@ -720,6 +849,9 @@ class Matrix(object):
         :param other: матрица, к которой производим разность
         :return: результат - объект Matrix
         """
+
+        if not isinstance(other, Matrix):
+            raise MatrixError('type mismatch', {'def': '==', 'type1': type(self), 'type2':  type(other)})
 
         if self.row != other.row:
             raise MatrixError('rows are not equal', {'def': '-', 'row1': self.row, 'row2': other.row})
@@ -788,11 +920,11 @@ class Matrix(object):
                                   ' to the number of rows in the second matrix',
                                   {'def': '*', 'col_matrix1': self.col, 'row_matrix2': other.row})
 
-            matrix = Matrix(row=self.row, col=other.col)
-            for row in range(self.row):
-                for col in range(other.col):
-                    for row_col in range(self.col):
-                        matrix.matrix[row][col] += self.matrix[row][row_col] * other.matrix[row_col][col]
+            matrix = Matrix(row=other.row, col=self.col)
+            for row in range(other.row):
+                for col in range(self.col):
+                    for row_col in range(other.col):
+                        matrix.matrix[row][col] += other.matrix[row][row_col] * self.matrix[row_col][col]
 
             return matrix
 
