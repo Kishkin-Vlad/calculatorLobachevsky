@@ -245,6 +245,22 @@ class Matrix(object):
 
         return matrix.row
 
+    def tr(self):
+        """
+        Нахождение суммы главной элементов главной диагонали
+        :return: сумма
+        """
+
+        if self.row != self.col:
+            raise MatrixError('matrix is not square',
+                              {'def': 'tr', 'row': self.row, 'col': self.col})
+
+        total = 0
+        for i in range(self.row):
+            total += self.matrix[i][i]
+
+        return total
+
     def stepped_view(self):
         """
         Приводим матрицу к ступенчатому виду
