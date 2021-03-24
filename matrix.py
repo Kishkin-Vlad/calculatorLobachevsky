@@ -1,3 +1,7 @@
+# Сторонние библиотеки
+from copy import deepcopy
+
+
 # Наши модули
 from fraction import Fraction
 from Error import *
@@ -228,6 +232,18 @@ class Matrix(object):
                 matrix.matrix[j][i] = self.matrix[i][j]
 
         return matrix
+
+    def rank(self):
+        """
+        Считаем ранг матрицы
+        Приводим к ступенчатому виду и считаем количество строк
+        :return: ранг матрицы (int)
+        """
+
+        matrix = deepcopy(self)
+        matrix.stepped_view()
+
+        return matrix.row
 
     def stepped_view(self):
         """
