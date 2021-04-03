@@ -373,7 +373,7 @@ class Fraction(object):
     def __neg__(self):
         """
         Унарный минус
-        :return: результат - объект _Franction
+        :return: результат - объект Fraction
         """
 
         self.numerator = -self.numerator
