@@ -3,7 +3,7 @@ from copy import deepcopy
 
 
 # Наши модули
-from Error import *
+from Error import FractionError
 
 
 def _factor(number: int):
