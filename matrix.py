@@ -230,6 +230,7 @@ class Matrix(object):
         for i in range(self.row):
             for j in range(self.col):
                 matrix.matrix[j][i] = self.matrix[i][j]
+        self.row, self.col = self.col, self.row
 
         return matrix
 
