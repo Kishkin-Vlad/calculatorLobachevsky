@@ -3,8 +3,8 @@ from copy import deepcopy
 
 
 # Наши модули
-from fraction import Fraction
-from Error import MatrixError
+from .fraction import Fraction
+from .Error import MatrixError
 
 
 def _count_determinant(matrix: list):
