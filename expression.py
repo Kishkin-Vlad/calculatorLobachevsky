@@ -355,7 +355,7 @@ class Expression(object):
                 prior = lex.get_priority()
                 if stack:
                     prior_top_elem = stack[-1].get_priority()
-                    if prior <= prior_top_elem:
+                    if prior < prior_top_elem:
                         while stack:
                             out_list.append(stack.pop())
                 stack.append(lex)
