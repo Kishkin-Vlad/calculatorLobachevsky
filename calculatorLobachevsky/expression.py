@@ -1,6 +1,6 @@
 # Сторонние библиотеки
-# Импортируем очередь
-from collections import deque as _deque
+# Испортируем очередь
+from collections import deque
 
 
 # Наши модули
@@ -23,9 +23,6 @@ from .Error import ExpressionError
 
 
 class _Lexem(object):
-    """
-    Класс лексем
-    """
 
     def __init__(self, expression: str, type_element, value=-1.0, priority=-1):
         """
@@ -66,9 +63,6 @@ class _Lexem(object):
 
 
 class Expression(object):
-    """
-    Класс выражения
-    """
 
     def __init__(self, expression: str):
         """
@@ -79,7 +73,7 @@ class Expression(object):
         self.__input_expression = expression
         self.__output_expression = ''
         self.__vars = {}
-        self.__listRPN = _deque()
+        self.__listRPN = deque()
 
     def __lex_analysis(self):
         """
@@ -88,7 +82,7 @@ class Expression(object):
         :return: список c лексемами
         """
 
-        our_list = _deque()
+        our_list = deque()
         self.__input_expression = '{} '.format(self.__input_expression.replace(' ', ''))
         if self.__input_expression == ' ':
             raise ExpressionError('empty expression', {'def': '__lex_analysis (Lexical Analysis)'})
@@ -97,21 +91,6 @@ class Expression(object):
         state = 0
         count_brackets = 0
         temp_ch = ''
-
-        """
-        Если в arr_work_with_function лежит:
-        True - работаем с sqrt, тригометрическими и подобными функциями
-        False - работаем с обычными скобками
-        Пример: sqrt(1 + (2 + 3))
-        в arr_function будет лежать (sqrt)
-        в arr_work_with_function (True, False)
-        встречая ')' проверяем, если:
-        False, то просто работаем, как с обычными скобками. И удаляем из стека arr_work_with_function последний элемент
-        True, то работаем как с функциями. И удаляем из стеков arr_function и arr_work_with_function последние элементы
-        """
-        arr_function = _deque()            # для sqrt, тригометрических и подобных функций
-        arr_work_with_function = _deque()  # для sqrt, тригометрических и подобных функций
-        power_for_sqrt = _deque()          # для sqrt
 
         for i, char in enumerate(self.__input_expression):
             if state == 0:
@@ -194,7 +173,7 @@ class Expression(object):
 
             elif state == 2:
                 """
-                параметр, закрывающая скобка или sqrt
+                параметр или )
                 """
 
                 # Если последний элемент )
@@ -245,27 +224,19 @@ class Expression(object):
                         """
                         temp_ch нужен для отлова ошибок типа <буквы><числа> (для переменных)
                         Как можно писать переменную: a, a1, param1234
-                        Как нельзя: a1a, param1from
+                        Как нельзя: a1a, param1from, 12param (последнее будет восприниматься, как 12 * param)
                         """
-
-                        temp_ch += char
-                        lex += char
+                        temp_ch = char
+                        lex = char
                     elif 'a' <= char <= 'z':
-                        if not isinstance(temp_ch, int):
-                            if lex[:4] != 'sqrt':
-                                raise ExpressionError('how should it look var: <letters><number>'
-                                                      ' (the number can be omitted)',
-                                                      {'def': '__lex_analysis (Lexical Analysis)', 'variable': lex,
-                                                       'variable+char': '{}{}'.format(lex, char)})
-                            arr_function.append(lex)
-                            arr_work_with_function.append(True)
-                            power_for_sqrt.append(temp_ch)
-                            lex = char
-                            temp_ch = ''
+                        if '1' <= temp_ch <= '9':
+                            raise ExpressionError('how should it look var: <letters><number>'
+                                                  ' (the number can be omitted)',
+                                                  {'def': '__lex_analysis (Lexical Analysis)', 'variable': lex,
+                                                   'variable+char': '{}{}'.format(lex, char)})
                         lex += char
                     elif char == '+' or char == '-':
                         state = 3
-                        temp_ch = ''
 
                         if lex not in self.__vars.keys():
                             self.__vars[lex] = None
@@ -275,7 +246,6 @@ class Expression(object):
                         our_list.append(_Lexem(lex, 2, -1, 1))
                     elif char == '*' or char == '/':
                         state = 3
-                        temp_ch = ''
 
                         if lex not in self.__vars.keys():
                             self.__vars[lex] = None
@@ -285,7 +255,6 @@ class Expression(object):
                         our_list.append(_Lexem(lex, 2, -1, 2))
                     elif char == '^':
                         state = 3
-                        temp_ch = ''
 
                         if lex not in self.__vars.keys():
                             self.__vars[lex] = None
@@ -294,23 +263,17 @@ class Expression(object):
                         lex = char
                         our_list.append(_Lexem(lex, 2, -1, 3))
                     elif char == '(':
-                        if lex[:4] == 'sqrt':
-                            arr_function.append(lex)
-                            arr_work_with_function.append(True)
-                            power_for_sqrt.append(temp_ch)
-                        else:
-                            if lex not in self.__vars.keys():
-                                self.__vars[lex] = None
-                            our_list.append(_Lexem(lex, 1))
-                            arr_work_with_function.append(False)
                         state = 0
                         count_brackets += 1
+
+                        if lex not in self.__vars.keys():
+                            self.__vars[lex] = None
+                        our_list.append(_Lexem(lex, 1))
 
                         lex = char
                         our_list.append(_Lexem(lex, 4))
                     elif char == ')':
                         state = 2
-                        temp_ch = ''
 
                         count_brackets -= 1
                         if count_brackets < 0:
@@ -380,8 +343,8 @@ class Expression(object):
         :return: готовый список для вычисления
         """
 
-        stack = _deque()
-        out_list = _deque()
+        stack = deque()
+        out_list = deque()
         for lex in in_list:
             type_elem = lex.get_type_element()
             # число или параметр
@@ -424,7 +387,7 @@ class Expression(object):
         self.__input_expression = expression
         self.__output_expression = ''
         self.__vars = {}
-        self.__listRPN = _deque()
+        self.__listRPN = deque()
 
     def get_input_expression(self):
         return self.__input_expression
@@ -432,7 +395,7 @@ class Expression(object):
     def get_output_expression(self):
         return self.__output_expression
 
-    def __add_var(self, var):
+    def add_var(self, var):
         """
         Добавление значений к переменным
         :param var: словарь с:
@@ -460,18 +423,14 @@ class Expression(object):
         for elem in self.__listRPN:
             self.__output_expression += elem.get_str()
 
-    def calculate(self, variables=None):
+    def calculate(self):
         """
         Считает обратную польскую запись
-        :param variables: если есть известные параметры в выражение, то они передаются в виде:
-        {'<название параметра>': <его значение>}. Пример: {'a': 2, 'b': 3}
         :return: число, которое последнее осталось после ОПЗ
         """
 
         self.__convert_to_rev_pol_not()
-        if variables is not None:
-            self.__add_var(variables)
-        stack = _deque()
+        stack = deque()
         for lex in self.__listRPN:
             type_elem = lex.get_type_element()
             # для чисел
