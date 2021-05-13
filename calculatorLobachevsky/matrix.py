@@ -3,8 +3,9 @@ from copy import deepcopy
 
 
 # Наши модули
-from fraction import Fraction
-from Error import MatrixError
+from .polynom import Polynom
+from .fraction import Fraction
+from .Error import MatrixError
 
 
 def _count_determinant(matrix: list):
@@ -369,17 +370,105 @@ class Matrix(object):
                 self.matrix.pop(self.col)
                 self.row -= 1
 
+        """
+        Т.к. могли удалиться первые элементы (единицы), то
+        сделаем, чтобы строки начинались единиц
+        """
+        for i in range(self.row):
+            unit = False
+            number = 0
+            for j in range(self.col):
+                if self.matrix[i][j] != 0 and not unit:
+                    unit = True
+                    number = self.matrix[i][j]
+                if unit:
+                    self.matrix[i][j] /= number
+
+
         return self
 
-    def gauss(self):
+    def gauss(self, decision: list):
         """
         Найти решение методом Гаусса
+        :param :
         :return: массив решений, т. е. [x1, x2, ..., xn]
         """
         """
         Приводим матрицу к треульному виду и решаем систему уравнений
         """
-        pass
+
+        if len(decision) != self.row:
+            raise MatrixError('the number of lines and the number of solutions passed do not match',
+                              {'def': 'gauss', 'count rows': self.row, 'length decision': len(decision)})
+
+        matrix = deepcopy(self.matrix)
+        for i, elem in enumerate(decision):
+            matrix[i].append(elem)
+        matrix = Matrix(matrix)
+
+        """
+        Три разных состояния:
+        1 - matrix.row + 1 == matrix.col: то есть матрица (допустим) будет 2х2 (квадратной) и справа столбец решений
+        Для такой матрицы не будет свободных членов
+        2 - matrix.row + 1 < matrix.col: то есть матрица  (допустим) будет минимум 2х3 и справа столбец решений
+        Для такой матрица будет ровно self.col - self.row + 1 свободных членов
+        3 - matrix.row + 1 > matrix.col: то есть матрица (допустим) будет 3х2 и справа стобец решений
+        Для такой матрицы не будет свободных членов
+        """
+        if matrix.row + 1 == matrix.col:
+            state = 1
+        elif matrix.row + 1 < matrix.col:
+            state = 2
+        else:
+            state = 3
+        matrix.stepped_view()
+        print(matrix)
+
+        count = [matrix.row, True] if matrix.row <= matrix.col else [matrix.col, False]
+        for i in range(count[0]):
+            if matrix.matrix[i][i] == 0:
+                matrix.matrix.pop(i)
+                if count[1]:
+                    matrix.row -= 1
+                else:
+                    matrix.col -= 1
+
+        if state == 1 or state == 3:
+
+            if state == 3:
+                matrix.matrix.pop()
+                matrix.row -= 1
+
+            xns = []  # список всех Xn
+            for i in range(matrix.row, 0, -1):  # идем в обратном порядке (от matrix.row до 0)
+                # т.к. у нас число в [1][1], [2][2], ..., [n][n] всегда 1, то ничего делить не надо
+                # (такие преобразования делает self.stepped_view())
+                count_xn = matrix.row - i       # количество Xn, которые нужно будет подставлять
+                xn = matrix.matrix[i - 1][-1]   # берем решение (правый элемент в этой строке)
+                for x in range(count_xn):
+                    # Вычитаем каждый член после [i][i] помноженный на коэф, который мы нашли ранее
+                    # то есть для i = 3 и количества строк 5 найденные коэф - это X4, X5
+                    xn -= matrix.matrix[i - 1][i + x] * xns[-(x + 1)]
+                xns.append(xn)
+
+        else:  # state == 2
+            # Некорректно работает
+            xns = []
+            for i in range(matrix.row, 0, -1):  # идем в обратном порядке (от matrix.row до 0)
+                # т.к. у нас число в [1][1], [2][2], ..., [n][n] всегда 1, то ничего делить не надо
+                # (такие преобразования делает self.stepped_view())
+                count_xn = matrix.row - i       # количество Xn, которые нужно будет подставлять
+                if matrix.matrix[i - 1][i - 1] == 1:
+                    xn = Polynom(matrix.matrix[i - 1][-1])   # берем решение (правый элемент в этой строке)
+                elif matrix.matrix[i - 1][i - 1] == 0:
+                    xn = Polynom(1, {'t': 1})
+                for x in range(count_xn):
+                    # Вычитаем каждый член после [i][i] помноженный на коэф, который мы нашли ранее
+                    # то есть для i = 3 и количества строк 5 найденные коэф - это X4, X5
+                    xn -= matrix.matrix[i - 1][i + x] * xns[-(x + 1)]
+                xns.append(xn)
+
+        return xns
 
     def __eq__(self, other):
         """

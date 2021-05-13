@@ -3,7 +3,7 @@ from copy import deepcopy
 
 
 # Наши модули
-from Error import FractionError
+from .Error import FractionError
 
 
 def _factor(number: int):
@@ -148,6 +148,17 @@ class Fraction(object):
             return new_numerator // new_denominator
 
         return Fraction(new_numerator, new_denominator)
+
+    def __eq__(self, other):
+        if isinstance(self, Fraction):
+            self.reduction()
+        if isinstance(other, Fraction):
+            other.reduction()
+
+        return self.numerator == other.numerator and self.denominator == other.denominator
+
+    def __ne__(self, other):
+        return self.numerator != other.numerator or self.denominator != other.denominator
 
     def __lt__(self, other):
         """

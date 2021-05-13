@@ -4,7 +4,7 @@ from collections import deque
 
 
 # Наши модули
-from Error import ExpressionError
+from .Error import ExpressionError
 
 
 # Типы встречаемых символов (type element)
@@ -224,7 +224,7 @@ class Expression(object):
                         """
                         temp_ch нужен для отлова ошибок типа <буквы><числа> (для переменных)
                         Как можно писать переменную: a, a1, param1234
-                        Как нельзя: a1a, param1from
+                        Как нельзя: a1a, param1from, 12param (последнее будет восприниматься, как 12 * param)
                         """
                         temp_ch = char
                         lex = char
