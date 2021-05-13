@@ -6,6 +6,7 @@ from collections import deque as _deque
 
 # Наши модули
 from .Error import PolynomError
+from .fraction import Fraction
 
 
 class _Monom(object):
@@ -21,7 +22,7 @@ class _Monom(object):
         значениями - степенями переменных
         """
 
-        if not isinstance(coefficient, (int, float, complex)):
+        if not isinstance(coefficient, (int, float, complex, Fraction)):
             raise PolynomError('coefficient is not a number',
                                {'def': '__init__(for _Monom)', 'type': type(coefficient)})
         self.coefficient = coefficient
@@ -33,7 +34,7 @@ class _Monom(object):
         if variables is not None:
             keys = variables.keys()
             for key in keys:
-                if not isinstance(variables[key], (int, float, complex)):
+                if not isinstance(variables[key], (int, float, complex, Fraction)):
                     raise PolynomError('variable is not a number',
                                        {'def': '__init__(for _Monom)', 'type': type(variables[key])})
                 self.variables[key] = variables[key]
@@ -94,7 +95,7 @@ class _Monom(object):
         if isinstance(other, _Monom):
             # Если равны коэф и переменные
             return self.get_coefficient() == other.get_coefficient() and self.get_variables() == other.get_variables()
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             return not self.get_variables() and self.get_coefficient() == other
         else:
@@ -111,7 +112,7 @@ class _Monom(object):
         if isinstance(other, _Monom):
             # Если равны коэф и переменные
             return self.get_coefficient() != other.get_coefficient() or self.get_variables() != other.get_variables()
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             return self.get_variables() or self.get_coefficient() != other
         else:
@@ -153,7 +154,7 @@ class _Monom(object):
                 return False
             return True
 
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             if not self.get_variables() and self.get_coefficient() < other:
                 return True
@@ -197,7 +198,7 @@ class _Monom(object):
                 return False
 
             return True
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             if not self.get_variables() and self.get_coefficient() <= other:
                 return True
@@ -241,7 +242,7 @@ class _Monom(object):
                 return False
             return True
 
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             if self.get_variables() or self.get_coefficient() > other:
                 return True
@@ -286,7 +287,7 @@ class _Monom(object):
                 return False
 
             return True
-        elif isinstance(other, (int, float, complex)):
+        elif isinstance(other, (int, float, complex, Fraction)):
             # Если нет переменных в мономе и коэф. монома равен числу
             if self.get_variables() or self.get_coefficient() >= other:
                 return True
@@ -379,7 +380,7 @@ class _Monom(object):
         Умножение монома на число/моном (= self * other)
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             tmp = deepcopy(self)
             tmp.coefficient *= other
             return tmp
@@ -406,7 +407,7 @@ class _Monom(object):
         Правое умножение монома на число/моном  (= other * self)
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             tmp = deepcopy(self)
             tmp.coefficient *= other
             return tmp
@@ -433,7 +434,7 @@ class _Monom(object):
         Умножение монома на число/моном (self *= other)
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             self.coefficient *= other
             return self
         elif isinstance(other, _Monom):
@@ -491,7 +492,7 @@ class Polynom(object):
         self.list_monom = []
         if obj is None:
             self.list_monom.append(_Monom())
-        elif isinstance(obj, (int, float, complex)):
+        elif isinstance(obj, (int, float, complex, Fraction)):
             self.list_monom.append(_Monom(obj))
         elif isinstance(obj, _Monom):
             self.list_monom.append(deepcopy(obj))
@@ -847,7 +848,7 @@ class Polynom(object):
         Умножение полиномов с числами/мономами/полиномами
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             if other != 0:
                 tmp = deepcopy(self)
                 for elem in tmp.list_monom:
@@ -883,7 +884,7 @@ class Polynom(object):
         Правое умножение полиномов с числами/мономами/полиномами
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             if other != 0:
                 tmp = deepcopy(self)
                 for elem in tmp.list_monom:
@@ -919,7 +920,7 @@ class Polynom(object):
         Умножение полиномов с числами/мономами/полиномами
         """
 
-        if isinstance(other, (int, float, complex)):
+        if isinstance(other, (int, float, complex, Fraction)):
             if other != 0:
                 for elem in self.list_monom:
                     elem *= deepcopy(other)
