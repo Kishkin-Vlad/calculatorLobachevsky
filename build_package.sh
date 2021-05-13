@@ -2,4 +2,4 @@
 set -e
 
 echo -e "\n---Building job-launcher python packages---"
-python setup.py sdist bdist_wheel
+python setup.py sdist
