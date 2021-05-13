@@ -725,21 +725,7 @@ class Matrix(object):
 
     def __repr__(self):
         """
-        :return: Вывод матрицы в виде (пример матрица 3x2):
-         [ [0, 0],
-           [0, 0],
-           [0, 0] ]
+        :return: Вывод матрицы в виде (пример матрица 3x2): [[0, 0], [0, 0], [0, 0]]
         """
 
-        result = str(self.matrix)
-
-        # result = '['
-        # for i in range(self.row):
-        #     if i == 0:
-        #         result = '{} {},'.format(result, str(self.matrix[i]))
-        #     else:
-        #         result = '{}  {},'.format(result, str(self.matrix[i]))
-        #     result = '{}\n'.format(result)
-        # result = '{} ]'.format(result[:-2])
-
-        return result
+        return str(self.matrix)
